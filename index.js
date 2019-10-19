@@ -11,7 +11,7 @@ mongoose.set("useFindAndModify", false);
 mongoose.set("useCreateIndex", true);
 
 mongoose
-  .connect("mongodb://localhost:27017/hamed", {
+  .connect(`mongodb://root:eqWAKXWHdmLSNEQdBAe9uPvr@s8.liara.ir:31415/project`, {
     useNewUrlParser: true,
     authSource: "admin",
     useUnifiedTopology: true
