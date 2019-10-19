@@ -16,5 +16,8 @@
     "joi": "^14.3.1",
     "loadsh": "0.0.4",
     "mongoose": "^5.7.1"
+  },
+  "devDependencies": {
+    "prettier": "1.18.2"
   }
 }

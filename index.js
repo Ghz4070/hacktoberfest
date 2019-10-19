@@ -12,13 +12,16 @@ mongoose.set("useFindAndModify", false);
 mongoose.set("useCreateIndex", true);
 
 mongoose
-  .connect(`mongodb://root:eqWAKXWHdmLSNEQdBAe9uPvr@s8.liara.ir:31415/project`, {
-    useNewUrlParser: true,
-    authSource: "admin",
-    useUnifiedTopology: true
-  })
-  .then(() => console.log("Connected To MongoDb"))
-  .catch(() => console.error("Could not Connect To MongoDb"));
+    .connect(
+        `mongodb://root:eqWAKXWHdmLSNEQdBAe9uPvr@s8.liara.ir:31415/project`,
+        {
+            useNewUrlParser: true,
+            authSource: "admin",
+            useUnifiedTopology: true
+        }
+    )
+    .then(() => console.log("Connected To MongoDb"))
+    .catch(() => console.error("Could not Connect To MongoDb"));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -29,5 +32,5 @@ app.use("/task", task);
 
 const port = process.env.PORT || 5000;
 app.listen(port, () =>
-  console.log(`Our Application is running on port ${port} ....`)
+    console.log(`Our Application is running on port ${port} ....`)
 );
