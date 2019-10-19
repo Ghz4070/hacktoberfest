@@ -1,0 +1,735 @@
+swagger: '2.0'
+info:
+  description: This is a server restApi for tboard website
+  version: '1'
+  title: Time board
+  contact:
+    email: contactus@example.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: tboard.io
+basePath: /v1
+schemes:
+  - https
+  - http
+paths:
+  /user:
+    post:
+      tags:
+        - auth
+      summary: Create user
+      description: This method is used both for signin and signup- if email is new, new user is created otherwise email and password is checked 
+      operationId: createUser
+      consumes: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/User'
+      responses:
+        '200':
+          description: token of user to be sent by other requests
+          schema:
+            type: string
+          headers:
+            X-Rate-Limit:
+              type: integer
+              format: int32
+              description: calls per hour allowed by the user
+            X-Expires-After:
+              type: string
+              format: date-time
+              description: date in UTC when token expires
+        '400':
+          description: Invalid email/password supplied
+          schema:
+            $ref: '#/definitions/ApiResponse'
+  /user/logout:
+    get:
+      tags:
+        - auth
+      summary: Logs out current logged in user session
+      description: ''
+      operationId: logout
+      parameters: []
+      responses:
+        '200':
+          description: Status 200
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '401':
+          description: This user is unauthorized to logout
+          schema:
+            $ref: '#/definitions/ApiResponse'
+      security:
+        - api_key: []
+  /user/forgetpassword:
+    get:
+      tags:
+        - auth
+      summary: Send an email with setpassword link
+      description: ''
+      operationId: forgetpassword
+      parameters:
+        - name: email
+          in: query
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Status 200
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '400':
+          description: Invalid email
+          schema:
+            $ref: '#/definitions/ApiResponse'
+    put:
+      tags:
+        - auth
+      summary: Updated user password
+      description: This can only be done by the passwordRenewToken which is sent to user.
+      operationId: updateUser
+      parameters:
+        - name: passwordRenewToken
+          in: query
+          required: true
+          type: string
+        - name: newPassword
+          in: query
+          required: true
+          type: string
+        - name: newPasswordAgain
+          in: query
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Status 200
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '400':
+          description: Invalid Renew Token
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '404':
+          description: Passwords not match
+          schema:
+            $ref: '#/definitions/ApiResponse'
+  /board:
+    post:
+      tags:
+        - board
+      summary: Create new board
+      description: if board is private generate a 64 bit random key and put as urlAlias
+      operationId: createBoard
+      consumes: []
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Board'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Board'
+        '400':
+          description: urlAlias already exist
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '401':
+          description: This user is unauthorized to create a board
+          schema:
+            $ref: '#/definitions/ApiResponse'
+      security:
+        - api_key: []
+    get:
+      tags:
+        - board
+      summary: get all boards of a user
+      description: Returns all boards
+      operationId: getBoardsByEmail
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Board'
+        '401':
+          description: This user is unauthorized to see all boards
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '404':
+          description: Board not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+      security:
+        - api_key: []        
+  /board/{urlAlias}:
+    get:
+      tags:
+        - board
+      summary: Find board by alias
+      description: Returns a single board
+      operationId: getBoardByAlias
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Board'
+        '404':
+          description: Board not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+    put:
+      tags:
+        - board
+      summary: Update an existing board
+      description: 
+        1-Board can not change in Doing status
+        2-if duration is set then startTime=now and endtime=now+duration in days 
+      operationId: updateBoard
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Board'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Board'
+        '401':
+          description: This user is unauthorized to change
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '404':
+          description: Board not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '405':
+          description: Validation exception
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '406':
+          description: Board can not change in Doing status
+          schema:
+            $ref: '#/definitions/ApiResponse'
+      security:
+        - api_key: []
+    delete:
+      tags:
+        - board
+      summary: Delete Board by urlAlias
+      description: ''
+      operationId: deleteBoard
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '401':
+          description: This user is unauthorized to delete
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '404':
+          description: Board not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+      security:
+        - api_key: []
+    parameters:
+      - name: urlAlias
+        in: path
+        required: true
+        type: string
+        description: Alias of board to show
+  /board/finishTime:
+    get:
+      tags:
+        - board
+      summary: Finish boards which the time has finished and send email
+      description: It's a cron job which is called every hour to change board ststud
+        things to do in the method
+          1-change the status of all "doing" tasks in board to "todo" status 
+          2-set the board status from "Doing" to "ToDo"
+          3-set duration to 0
+          4- send email
+      operationId: finishTime
+      consumes: []
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/ApiResponse'
+              
+  /board/{urlAlias}/task:
+    post:
+      tags:
+        - task
+      summary: Add a new task to the board
+      description: ''
+      operationId: addTask
+      consumes:
+        - application/json
+      parameters:
+        - name: task
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Task'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '400':
+          description: Invalid input
+        '401':
+          description: This user is unauthorized to add to this board
+      security:
+        - api_key: []
+    parameters:
+      - name: urlAlias
+        in: path
+        required: true
+        type: string
+        description: Alias of board to add task
+  /board/{urlAlias}/findByStatus:
+    get:
+      tags:
+        - task
+      summary: Finds board Tasks by status
+      description: Multiple status values can be provided with comma separated strings
+      operationId: findTasksByStatus
+      produces:
+        - application/json
+      parameters:
+        - name: status
+          in: query
+          required: true
+          type: array
+          description: Status values that need to be considered for filter
+          items:
+            type: string
+            default: Todo
+            enum:
+              - Todo
+              - Doing
+              - Done
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Task'
+        '400':
+          description: Invalid status value
+    parameters:
+      - name: urlAlias
+        in: path
+        required: true
+        type: string
+        description: Alias of board to get tasks
+  /task/{taskId}:
+    get:
+      tags:
+        - task
+      summary: Find task by ID
+      description: Returns a single task
+      operationId: getTaskById
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Task'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Task not found
+    put:
+      tags:
+        - task
+      summary: Updates a task in the board
+      description: ''
+      operationId: updateTask
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Task'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Task'
+        '400':
+          description: Invalid input
+        '401':
+          description: This user is unauthorized to change the task
+        '405':
+          description: 'If assignedTo is Empty, status can not change to Doing or Done'
+        '406':
+          description: 'If result is Empty, status can not change to Done'
+      security:
+        - api_key: []
+    delete:
+      tags:
+        - task
+      summary: Deletes a task
+      description: ''
+      operationId: deleteTask
+      parameters:
+        - name: api_key
+          in: header
+          required: false
+          type: string
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '400':
+          description: Invalid ID supplied
+        '401':
+          description: This user is unauthorized to delete the task
+        '404':
+          description: Task not found
+      security:
+        - api_key: []
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        type: integer
+        format: int64
+        description: ID of task to return
+  /task/{taskId}/assignTo:
+    post:
+      tags:
+        - task
+      summary: Assign a task to a user and change status to Doing
+      description: ''
+      operationId: assignTask
+      consumes:
+        - application/x-www-form-urlencoded
+      parameters:
+        - name: email
+          in: formData
+          required: true
+          type: string
+          description: If email doesn't exist, add it to users and send invitaion email to
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Task'
+        '400':
+          description: Invalid input
+        '401':
+          description: This user is unauthorized to change the task
+        '404':
+          description: Task not found
+        '405':
+          description: 'If assignedTo is Empty, status can not change to Doing or Done'
+        '406':
+          description: 'If result is Empty, status can not change to Done'
+      security:
+        - api_key: []
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        type: integer
+        format: int64
+        description: ID of task to update
+  /task/{taskId}/finish:
+    post:
+      tags:
+        - task
+      summary: Finish a task by filling result to that
+      description: ''
+      operationId: finishTask
+      consumes:
+        - application/json
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/Output'
+          description: 'Add Output to task and change status to Done '
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Task'
+        '400':
+          description: Invalid input
+        '401':
+          description: This user is unauthorized to change the task
+            Just creator and user who assigned to task can finish a task
+        '404':
+          description: Task not found
+        '405':
+          description: If assignedTo is Empty, status can not change to Doing or Done
+        '406':
+          description: If result is Empty, status can not change to Done
+      security:
+        - api_key: []
+        - boardtask_auth:
+            - boardCreator
+            - TaskUser
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        type: integer
+        format: int64
+        description: ID of task to update
+  /board/{urlAlias}/user:
+    get:
+      tags:
+        - user
+      summary: get all users who had assigned tasks to on this board and the user who made the board
+      description: Returns all users of the board
+      operationId: getBoardUsers
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+        '401':
+          description: This user is unauthorized to see users
+          schema:
+            $ref: '#/definitions/ApiResponse'
+        '404':
+          description: Board not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+      security:
+        - boardtask_auth:
+            - boardCreator
+    parameters:
+      - name: urlAlias
+        in: path
+        required: true
+        type: string
+        description: Alias of board to show
+  /task/{taskId}/{email}:
+    post:
+      tags:
+        - vote
+      summary: Add a vote to the votes of a task
+      description: Returns all users of the board
+      operationId: IncreaseVote
+      produces:
+        - application/json
+      parameters: []
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Board'
+        '404':
+          description: Task not found
+          schema:
+            $ref: '#/definitions/ApiResponse'
+    parameters:
+      - name: taskId
+        in: path
+        required: true
+        type: string
+        description: Id of task
+      - name: email
+        in: path
+        required: true
+        type: string
+        description: email of user who votes
+securityDefinitions:
+  boardtask_auth:
+    type: oauth2
+    tokenUrl: 'http://thedomain/oauth/'
+    flow: password
+    scopes:
+      boardCreator: User who made the board
+      TaskUser: User who is assigned a task
+  api_key:
+    type: apiKey
+    name: api_key
+    in: header
+definitions:
+  User:
+    type: object
+    required:
+      - email
+      - id
+    properties:
+      id:
+        type: string
+        description: Primary_key
+        example: 5ugugryd4tty4jyges
+      name:
+        type: string
+        example: Saman
+      email:
+        type: string
+        description: unique_key
+        example: example@gmail.com
+      password:
+        type: string
+      createDate:
+        type: string
+        format: date-time
+      boards:
+        type: array
+        items:
+          $ref: '#/definitions/Board'
+      status:
+        type: string
+        default: Free
+        description: user status
+        enum:
+          - Free
+          - Paid
+  Board:
+    type: object
+    required:
+      - title
+      - id
+      - urlAlias
+    properties:
+      id:
+        type: string
+        description: Primary_key
+        example: 4345efgtsd4tty4jyges
+      title:
+        type: string
+        example: board1
+      description:
+        type: string
+        description: long text
+        example: this is a long text in which board description would be wriiten
+      urlAlias:
+        type: string
+        description: uniqe for each board
+      visibility:
+        type: string
+        default: Public
+        description: Board Visibility to others
+        enum:
+          - Public
+          - Private
+      createDate:
+        type: string
+        format: date-time
+      startTime:
+        type: string
+        format: date-time
+      duration:
+        type: integer
+        format: int64
+      endTime:
+        type: string
+        format: date-time
+      tasks:
+        type: array
+        items:
+          $ref: '#/definitions/Task'
+      status:
+        type: string
+        default: ToDo
+        description: Board Status
+        enum:
+          - ToDo
+          - Planning
+          - Doing
+          - Finalizing
+  Vote:
+    type: object
+    properties:
+      id:
+        type: string
+      email:
+        type: string
+  Output:
+    type: object
+    properties:
+      id:
+        type: string
+      description:
+        type: string
+      file:
+        type: string
+  Task:
+    type: object
+    required:
+      - id
+      - title
+    properties:
+      id:
+        type: string
+        description: Primary_key
+        example: 4345ef87ty4jyges
+      title:
+        type: string
+        example: task1
+      description:
+        type: string
+        description: long text
+      createDate:
+        type: string
+        format: date-time
+      assignedTo:
+        $ref: '#/definitions/User'
+      result:
+        $ref: '#/definitions/Output'
+      votes:
+        type: array
+        items:
+          $ref: '#/definitions/Vote'
+      status:
+        type: string
+        description: task status in the board
+        enum:
+          - Todo
+          - Doing
+          - Done
+  ApiResponse:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      type:
+        type: string
+      message:
+        type: string
